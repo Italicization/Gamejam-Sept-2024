@@ -1,0 +1,24 @@
+// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel CSMain
+
+RWByteAddressBuffer _VertexBuffer;
+uint _ResolutionX;
+uint _ResolutionY;
+uint _VertexStride;
+uint _PositionHeightOffset;
+float _Amplitude;	
+float _Frequency;	
+float4 _Time;
+
+[numthreads(8,8,1)]
+void CSMain (uint3 id : SV_DispatchThreadID)
+{
+  //   if (id.x > _ResolutionX || id.y > _ResolutionY)
+		// return;
+
+	float h = sin(id.x * _Frequency + _Time.y) * _Amplitude;
+
+	uint vertex = id.x + id.y * (_ResolutionX + 1);
+	int vertexStart = vertex * _VertexStride;
+    _VertexBuffer.Store(vertexStart + _PositionHeightOffset, asuint(h));
+}
