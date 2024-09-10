@@ -1,3 +1,4 @@
+using UnityEditor;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -13,6 +14,9 @@ public class CharacterController : MonoBehaviour
 	private Transform cameraTransform;
 	[SerializeField] private Transform flatCameraTransform;
 	[SerializeField] private Transform visualTransform;
+	[SerializeField] private CrabShell currentShell;
+	[SerializeField] private Transform shellHolder;
+	
 
 	private InputAction Look;
     private InputAction Fire;
@@ -55,8 +59,10 @@ public class CharacterController : MonoBehaviour
     {
         currentMovementInput = Move.ReadValue<Vector2>();
         currentLookInput = Look.ReadValue<Vector2>();
-      CharacterMove(currentMovementInput);
-        CameraLook(currentLookInput);
+		CharacterMove(currentMovementInput);
+		CameraLook(currentLookInput);
+
+		TryUpdateShellParent();
 	}
 
 	private void LateUpdate()
@@ -111,18 +117,78 @@ public class CharacterController : MonoBehaviour
 		visualTransform.LookAt(lerpedDirection + visualTransform.position);
 	}
 
+	CrabShell FindClosestCrabShell()
+	{
+		CrabShell closestCrabShell = null;
+		RaycastHit[] colliders = Physics.BoxCastAll(visualTransform.position + visualTransform.forward * 2, Vector3.one, visualTransform.forward);
+		Debug.DrawLine(visualTransform.position, visualTransform.position + visualTransform.forward, Color.red,1);
+		foreach (RaycastHit hit in colliders)
+		{
+			CrabShell shell = hit.collider.gameObject.GetComponent<CrabShell>();
+			if (shell != null)
+			{
+				Vector3 toHit = hit.collider.gameObject.transform.position - visualTransform.position;
+				float closeness = Vector3.Dot(visualTransform.forward, toHit);
+				Debug.Log(hit.collider.gameObject.name);
+				closestCrabShell = shell;
+			}
+		}
+		return closestCrabShell;
+	}
+
+	void TryUpdateShellParent()
+	{
+        if (currentShell != null)
+        {
+			currentShell.gameObject.transform.parent = shellHolder;
+			currentShell.gameObject.transform.position = shellHolder.position + currentShell.positionOffset;
+			currentShell.gameObject.transform.rotation = shellHolder.rotation;
+        }
+    }
+
+	void EnterEmptyShell(CrabShell shell)
+	{
+		currentShell = shell;
+		shell.gameObject.GetComponent<Rigidbody>().isKinematic = true;
+		shell.gameObject.GetComponent<Collider>().enabled = false;
+	}
+
 	void OnPrimaryAttack(InputAction.CallbackContext context)
     {
     }
 
+
+	/// <summary>
+	/// Try to enter an unoccupied shell. If already in a shell, hide within it
+	/// </summary>
 	void OnEnterShell(InputAction.CallbackContext context)
 	{
+		bool isAlreadyInShell = currentShell != null;
 
+		if(isAlreadyInShell)
+		{
+
+		}
+		else
+		{
+			currentShell = FindClosestCrabShell();
+			if (currentShell != null)
+			{
+				if (!currentShell.HasContents)
+					EnterEmptyShell(currentShell);
+			}
+		}
 	}
 
 	void OnExitShell(InputAction.CallbackContext context)
 	{
-
+		if(currentShell != null)
+		{
+			currentShell.gameObject.transform.parent = null;
+			currentShell.gameObject.GetComponent<Rigidbody>().isKinematic = false;
+			currentShell.gameObject.GetComponent<Collider>().enabled = true;
+			currentShell = null;
+		}
 	}
 
     void OnJump(InputAction.CallbackContext context)
