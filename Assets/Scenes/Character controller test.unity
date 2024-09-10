@@ -123,6 +123,38 @@ NavMeshSettings:
     debug:
       m_Flags: 0
   m_NavMeshData: {fileID: 0}
+--- !u!1 &97797239
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 97797240}
+  m_Layer: 0
+  m_Name: Crabvisuals
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &97797240
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 97797239}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 216835665}
+  m_Father: {fileID: 1102948169}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &216835664
 GameObject:
   m_ObjectHideFlags: 0
@@ -151,7 +183,7 @@ Transform:
   m_GameObject: {fileID: 216835664}
   serializedVersion: 2
   m_LocalRotation: {x: -0.35355276, y: 0.6123717, z: -0.3535538, w: 0.6123734}
-  m_LocalPosition: {x: 0, y: 0.315, z: 0}
+  m_LocalPosition: {x: 0, y: 0.31500006, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -161,7 +193,7 @@ Transform:
   - {fileID: 1553155225}
   - {fileID: 2138350701}
   - {fileID: 992701550}
-  m_Father: {fileID: 1102948169}
+  m_Father: {fileID: 97797240}
   m_LocalEulerAnglesHint: {x: 0, y: 90, z: -60}
 --- !u!136 &216835666
 CapsuleCollider:
@@ -941,7 +973,7 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
-  - {fileID: 216835665}
+  - {fileID: 97797240}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &1102948170
@@ -1057,6 +1089,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   cameraOffset: {x: 0, y: 3.34, z: -10.77}
   flatCameraTransform: {fileID: 1278501226}
+  visualTransform: {fileID: 97797240}
   movementForce: 423.5
   lookSensitivity: 10
 --- !u!1 &1243450383

@@ -12,6 +12,7 @@ public class CharacterController : MonoBehaviour
     private float cameraXRotation;
 	private Transform cameraTransform;
 	[SerializeField] private Transform flatCameraTransform;
+	[SerializeField] private Transform visualTransform;
 
 	private InputAction Look;
     private InputAction Fire;
@@ -71,9 +72,10 @@ public class CharacterController : MonoBehaviour
 		//Make direction camera relative
 		//Vector3 lookRelative = Vector3.ProjectOnPlane(input.camera.transform.forward, Vector3.up);
 		Vector3 movement = new(moveDirection.x, 0, moveDirection.y);
-		characterRigidBody.AddForce(flatCameraTransform.right * movement.x, ForceMode.Force);
-		characterRigidBody.AddForce(flatCameraTransform.forward * movement.z, ForceMode.Force);
-		RotateTowardsMoveDirection(new(moveDirection.x,0,moveDirection.y));
+		movement = flatCameraTransform.right * movement.x + flatCameraTransform.forward * movement.z;
+		characterRigidBody.AddForce(movement, ForceMode.Force);
+		//characterRigidBody.AddForce(flatCameraTransform.forward * movement.z, ForceMode.Force);
+		RotateTowardsMoveDirection(movement);
 	}
 
 	private void CameraLook(Vector2 lookDirection)
@@ -104,9 +106,9 @@ public class CharacterController : MonoBehaviour
 
 	void RotateTowardsMoveDirection(Vector3 direction)
 	{
-		Quaternion targetRotation = Quaternion.LookRotation(direction);	
-		float rotationDifference = Quaternion.Angle(targetRotation, transform.rotation);
-		characterRigidBody.rotation *= Quaternion.Euler(0,rotationDifference,0);
+		// Hmmmmmm seems to be having trouble with 180deg changes
+		Vector3 lerpedDirection = Vector3.LerpUnclamped(visualTransform.forward, direction.normalized, 0.2f);
+		visualTransform.LookAt(lerpedDirection + visualTransform.position);
 	}
 
 	void OnPrimaryAttack(InputAction.CallbackContext context)
