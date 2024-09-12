@@ -78,7 +78,7 @@ public static class MeshUtility
 	}
 
     [StructLayout(LayoutKind.Sequential)]
-	private struct Vertex
+	public struct Vertex
 	{
 		public float3 position;
 		public float3 normal;

@@ -4,21 +4,92 @@
 RWByteAddressBuffer _VertexBuffer;
 uint _ResolutionX;
 uint _ResolutionY;
+float4 _Size;
 uint _VertexStride;
-uint _PositionHeightOffset;
-float _Amplitude;	
-float _Frequency;	
+uint _PositionOffset;
+uint _NormalOffset;
 float4 _Time;
+
+struct WaveDescription
+{
+	float Frequency;
+	float Amplitude;
+	float Speed;
+	float2 Direction;
+	float SteepNess;
+};
+
+StructuredBuffer<WaveDescription> _Waves;
 
 [numthreads(8,8,1)]
 void CSMain (uint3 id : SV_DispatchThreadID)
 {
-  //   if (id.x > _ResolutionX || id.y > _ResolutionY)
-		// return;
+    if (id.x > _ResolutionX || id.y > _ResolutionY)
+		return;
 
-	float h = sin(id.x * _Frequency + _Time.y) * _Amplitude;
+	uint length;
+	uint stride;
+	_Waves.GetDimensions(length, stride);
 
+	float2 segmentSize = _Size.xy / float2(_ResolutionX, _ResolutionY);
+	float2 halfSize = _Size.xy * 0.5;
+
+
+	float3 position;
+	position.x = -halfSize.x + id.x * segmentSize.x;
+	position.z = halfSize.y - id.y * segmentSize.y;
+
+	for (uint i = 0; i < length; i++)
+	{
+		WaveDescription wave = _Waves[i];
+
+		float directionDot = dot(position.xz, wave.Direction);
+
+		float steepness = wave.SteepNess / (wave.Frequency *  wave.Amplitude * length);
+
+		if (isnan(steepness))
+			steepness = 0;
+		
+		position.y += wave.Amplitude * sin(directionDot * wave.Frequency + _Time.y * wave.Speed);
+		position.x += steepness * wave.Amplitude * wave.Direction.x * cos(wave.Frequency * directionDot + _Time.y * wave.Speed);
+		position.z += steepness * wave.Amplitude * wave.Direction.y * cos(wave.Frequency * directionDot + _Time.y * wave.Speed);
+	}
+
+	float3 normal = float3(0, 1, 0);
+
+	for (uint j = 0; j < length; j++)
+	{
+		WaveDescription wave = _Waves[j];
+
+		float steepness = wave.SteepNess / (wave.Frequency *  wave.Amplitude * length);
+
+		if (isnan(steepness))
+			steepness = 0;
+		
+		float projectedPosition = dot(wave.Direction, position.xz);
+		float fa = wave.Frequency * wave.Amplitude;
+		float s = wave.Frequency * projectedPosition + wave.Speed * _Time.y;
+		normal.x -= wave.Direction.x * fa * cos(s);
+		normal.y -= steepness * fa * sin(s);
+		normal.z -= wave.Direction.y * fa * cos(s);
+
+		// float wi = wave.Frequency;
+		// float WA = wi * wave.Amplitude;
+		// float phi = wave.Speed * wi;
+		// float rad = wi * dot(wave.Direction, position.xz) + phi * _Time.y;
+		// normal.xz -= wave.Direction.yx * WA * cos(rad);
+		// normal.y -= wave.SteepNess * WA * sin(rad);
+	}
+
+	normal = normalize(normal);
+	
 	uint vertex = id.x + id.y * (_ResolutionX + 1);
 	int vertexStart = vertex * _VertexStride;
-    _VertexBuffer.Store(vertexStart + _PositionHeightOffset, asuint(h));
+    _VertexBuffer.Store3(vertexStart + _PositionOffset, asuint(position));
+    _VertexBuffer.Store3(vertexStart + _NormalOffset, asuint(normal));
 }
+
+// float GetSideOffset(float x, float direction)
+// {
+// 	x + _Amplitude * direction * cos(_Frequency * dot())
+// }
