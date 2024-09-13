@@ -9,6 +9,13 @@ uint _VertexStride;
 uint _PositionOffset;
 uint _NormalOffset;
 float4 _Time;
+float _WaveSteepness = 0.29;
+float _WavePosition;
+float _WaveHeight = 1;
+float4 _WaveDirection = float4(1, 0, 0, 0);
+float _WaveFrequency = 0.01;
+
+const static float pi = 3.141592653589793238464;
 
 struct WaveDescription
 {
@@ -34,10 +41,12 @@ void CSMain (uint3 id : SV_DispatchThreadID)
 	float2 segmentSize = _Size.xy / float2(_ResolutionX, _ResolutionY);
 	float2 halfSize = _Size.xy * 0.5;
 
-
+	
 	float3 position;
 	position.x = -halfSize.x + id.x * segmentSize.x;
 	position.z = halfSize.y - id.y * segmentSize.y;
+	
+	float waveDot = dot(_WaveDirection.xy, position.xz) + _WavePosition;
 
 	for (uint i = 0; i < length; i++)
 	{
@@ -54,6 +63,9 @@ void CSMain (uint3 id : SV_DispatchThreadID)
 		position.x += steepness * wave.Amplitude * wave.Direction.x * cos(wave.Frequency * directionDot + _Time.y * wave.Speed);
 		position.z += steepness * wave.Amplitude * wave.Direction.y * cos(wave.Frequency * directionDot + _Time.y * wave.Speed);
 	}
+
+	float waveSin = sin(waveDot * _WaveFrequency + (_WavePosition - 0.5) * pi);
+	position.y += ((1 - pow(1 - abs(waveSin), _WaveSteepness)) * sign(waveSin) + 1) * 0.5 * _WaveHeight;
 
 	float3 normal = float3(0, 1, 0);
 

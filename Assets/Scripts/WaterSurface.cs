@@ -13,9 +13,19 @@ public class WaterSurface : MonoBehaviour
 	
 	[SerializeField] private Vector2 size = new(10, 10);
 	[SerializeField] int2 resolution = new(100, 100);
+	[Range(0, 100)]
+	[SerializeField] private float waveSteepness = 0.29f;
+	[SerializeField] private float wavePosition;
+	[SerializeField] private float waveHeight = 1;
+	[SerializeField] private float2 waveDirection = new float2(1, 0);
+	[SerializeField] private float wavelength = 100;
 	[SerializeField] private WaveConstruction[] waves;
 	[SerializeField] ComputeShader waterSimulationShader;
 	[SerializeField] private Material material;
+	[Header("Wave")]
+	[SerializeField] private float waveDuration = 1;
+	[SerializeField] private float floodedDuration = 1;
+	[SerializeField] private float dryDuration = 1;
 	[Header("Debug")]
 	[SerializeField] private int offset;
 	[SerializeField] private float normalScale = 1;
@@ -24,7 +34,9 @@ public class WaterSurface : MonoBehaviour
 	private int groupSize;
 	private GraphicsBuffer vertexBuffer;
 	private ComputeBuffer waveBuffer;
-
+	private int2 lastResolution;
+	private Vector2 lastSize;
+	
 	[Serializable]
 	class WaveConstruction
 	{
@@ -80,6 +92,38 @@ public class WaterSurface : MonoBehaviour
 		waveBuffer = new ComputeBuffer(waves.Length, WaveDescription.Stride);
 		
 		SetComputeProperties();
+		StartCoroutine(WaveLoop());
+	}
+
+	private IEnumerator WaveLoop()
+	{
+		while (true)
+		{
+			wavePosition = 0;
+			SetComputeProperties();
+
+			yield return new WaitForSeconds(dryDuration);
+
+			float timer = 0;
+			while (timer < waveDuration)
+			{
+				timer += Time.deltaTime;
+				yield return null;
+				wavePosition = timer / waveDuration;
+				SetComputeProperties();
+			}
+			
+			yield return new WaitForSeconds(floodedDuration);
+			
+			timer = 0;
+			while (timer < waveDuration)
+			{
+				timer += Time.deltaTime;
+				yield return null;
+				wavePosition = 1 - timer / waveDuration;
+				SetComputeProperties();
+			}
+		}
 	}
 
 	private void SetComputeProperties()
@@ -100,10 +144,21 @@ public class WaterSurface : MonoBehaviour
 		waterSimulationShader.SetBuffer(0, "_Waves", waveBuffer);
 		waterSimulationShader.SetVector("_Size", new Vector4(size.x, size.y)); 
 		waterSimulationShader.SetFloat("_NormalScale", normalScale); 
+		waterSimulationShader.SetFloat("_WaveSteepness", waveSteepness);
+		waterSimulationShader.SetFloat("_WavePosition", wavePosition);
+		waterSimulationShader.SetFloat("_WaveHeight", waveHeight);
+		waterSimulationShader.SetVector("_WaveDirection", new Vector4(waveDirection.x, waveDirection.y));
+		waterSimulationShader.SetFloat("_WaveFrequency", 2 * math.PI / wavelength);
 	} 
 
 	private void CreateMesh()
 	{
+		if (lastResolution.Equals(resolution) && lastSize.Equals(size))
+			return;
+		
+		lastResolution = resolution;
+		lastSize = size;
+	
 		CleanupMesh();
 		
 		mesh = MeshUtility.CreatePlaneMesh(size.x, size.y, resolution.x, resolution.y);

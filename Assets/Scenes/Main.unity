@@ -566,6 +566,12 @@ MonoBehaviour:
   resolution:
     x: 400
     y: 400
+  waveSteepness: 0.814
+  wavePosition: 0
+  waveHeight: 0.23
+  waveDirection:
+    x: 0
+    y: 1
   waves:
   - Frequency: 2
     Amplitude: 0.15
