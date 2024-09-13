@@ -5,11 +5,23 @@ using System.Runtime.InteropServices;
 using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Rendering;
+using static Unity.Mathematics.math;
 
 [ExecuteInEditMode]
 public class WaterSurface : MonoBehaviour
 {
 	private static readonly int vertexBufferId = Shader.PropertyToID("_VertexBuffer");
+	private static WaterSurface instance;
+
+	public static WaterSurface Instance
+	{
+		get
+		{
+			if (instance == null)
+				instance = FindFirstObjectByType<WaterSurface>();
+			return instance;
+		}
+	}
 	
 	[SerializeField] private Vector2 size = new(10, 10);
 	[SerializeField] int2 resolution = new(100, 100);
@@ -28,7 +40,6 @@ public class WaterSurface : MonoBehaviour
 	[SerializeField] private float dryDuration = 1;
 	[Header("Debug")]
 	[SerializeField] private int offset;
-	[SerializeField] private float normalScale = 1;
 	
 	private Mesh mesh;
 	private int groupSize;
@@ -36,6 +47,7 @@ public class WaterSurface : MonoBehaviour
 	private ComputeBuffer waveBuffer;
 	private int2 lastResolution;
 	private Vector2 lastSize;
+	private WaveDescription[] computedWaves;
 	
 	[Serializable]
 	class WaveConstruction
@@ -92,7 +104,11 @@ public class WaterSurface : MonoBehaviour
 		waveBuffer = new ComputeBuffer(waves.Length, WaveDescription.Stride);
 		
 		SetComputeProperties();
-		StartCoroutine(WaveLoop());
+		
+		if (Application.isPlaying)
+		{
+			StartCoroutine(WaveLoop());
+		}
 	}
 
 	private IEnumerator WaveLoop()
@@ -134,21 +150,20 @@ public class WaterSurface : MonoBehaviour
 			waveBuffer = new ComputeBuffer(waves.Length, WaveDescription.Stride);
 		}
 
-		WaveDescription[] waveDescriptions = new WaveDescription[waves.Length];
+		computedWaves = new WaveDescription[waves.Length];
 		for (int i = 0; i < waves.Length; i++)
-			waveDescriptions[i] = waves[i].ToDescription();
-		waveBuffer.SetData(waveDescriptions);
+			computedWaves[i] = waves[i].ToDescription();
+		waveBuffer.SetData(computedWaves);
 		
 		waterSimulationShader.SetInt("_ResolutionX", resolution.x);
 		waterSimulationShader.SetInt("_ResolutionY", resolution.y);
 		waterSimulationShader.SetBuffer(0, "_Waves", waveBuffer);
 		waterSimulationShader.SetVector("_Size", new Vector4(size.x, size.y)); 
-		waterSimulationShader.SetFloat("_NormalScale", normalScale); 
 		waterSimulationShader.SetFloat("_WaveSteepness", waveSteepness);
 		waterSimulationShader.SetFloat("_WavePosition", wavePosition);
 		waterSimulationShader.SetFloat("_WaveHeight", waveHeight);
 		waterSimulationShader.SetVector("_WaveDirection", new Vector4(waveDirection.x, waveDirection.y));
-		waterSimulationShader.SetFloat("_WaveFrequency", 2 * math.PI / wavelength);
+		waterSimulationShader.SetFloat("_WaveFrequency", 2 * PI / wavelength);
 	} 
 
 	private void CreateMesh()
@@ -206,6 +221,25 @@ public class WaterSurface : MonoBehaviour
 			vertexBuffer.Dispose();
 		}
 		waveBuffer?.Dispose();
+	}
+
+	public float GetHeightAtPosition(float3 position)
+	{
+		float waveDot = dot(waveDirection, position.xz) + wavePosition;
+		float time = Time.time;
+		float height = 0;
+
+		for (uint i = 0; i < computedWaves.Length; i++)
+		{
+			WaveDescription wave = computedWaves[i];
+
+			float directionDot = dot(position.xz, wave.Direction);
+			height += wave.Amplitude * sin(directionDot * wave.Frequency + time * wave.Speed);
+		}
+
+		float waveSin = sin(waveDot * 2 * PI / wavelength + (wavePosition - 0.5f) * PI);
+		height += ((1 - pow(1 - abs(waveSin), waveSteepness)) * sign(waveSin) + 1) * 0.5f * waveHeight;
+		return height;
 	}
 
 	private void OnDestroy()
