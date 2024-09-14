@@ -225,9 +225,11 @@ public class WaterSurface : MonoBehaviour
 
 	public float GetHeightAtPosition(float3 position)
 	{
+		float3 offsetPosition = transform.position;
+		position.xz -= offsetPosition.xz;
 		float waveDot = dot(waveDirection, position.xz) + wavePosition;
 		float time = Time.time;
-		float height = 0;
+		float height = offsetPosition.y;
 
 		for (uint i = 0; i < computedWaves.Length; i++)
 		{
