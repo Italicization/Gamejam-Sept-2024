@@ -1,7 +1,9 @@
-using UnityEditor;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
+/// <summary>
+/// Controls character movement and camera input
+/// </summary>
 public class CharacterController : MonoBehaviour
 {
     private PlayerInput input;
@@ -16,7 +18,6 @@ public class CharacterController : MonoBehaviour
 	[SerializeField] private Transform visualTransform;
 	[SerializeField] private CrabShell currentShell;
 	[SerializeField] private Transform shellHolder;
-	
 
 	private InputAction Look;
     private InputAction Fire;
@@ -61,8 +62,6 @@ public class CharacterController : MonoBehaviour
         currentLookInput = Look.ReadValue<Vector2>();
 		CharacterMove(currentMovementInput);
 		CameraLook(currentLookInput);
-
-		TryUpdateShellParent();
 	}
 
 	private void LateUpdate()
@@ -97,6 +96,7 @@ public class CharacterController : MonoBehaviour
 
 	private void UpdateCameraOffset()
 	{
+		//TODO: IGNORE SHELLS IN RAYCAST
 		Vector3 idealPosition = transform.position + cameraTransform.right * cameraOffset.x + cameraTransform.up * cameraOffset.y + cameraTransform.forward * cameraOffset.z;
 		// Ray from target to gameObject's ideal position
 		Debug.DrawRay(transform.position, (idealPosition - transform.position), Color.cyan);
@@ -136,27 +136,15 @@ public class CharacterController : MonoBehaviour
 		return closestCrabShell;
 	}
 
-	void TryUpdateShellParent()
-	{
-        if (currentShell != null)
-        {
-			currentShell.gameObject.transform.parent = shellHolder;
-			currentShell.gameObject.transform.position = shellHolder.position + currentShell.positionOffset;
-			currentShell.gameObject.transform.rotation = shellHolder.rotation;
-        }
-    }
-
 	void EnterEmptyShell(CrabShell shell)
 	{
 		currentShell = shell;
-		shell.gameObject.GetComponent<Rigidbody>().isKinematic = true;
-		shell.gameObject.GetComponent<Collider>().enabled = false;
+		currentShell.EnterShell(shellHolder);
 	}
 
 	void OnPrimaryAttack(InputAction.CallbackContext context)
     {
     }
-
 
 	/// <summary>
 	/// Try to enter an unoccupied shell. If already in a shell, hide within it
@@ -167,7 +155,7 @@ public class CharacterController : MonoBehaviour
 
 		if(isAlreadyInShell)
 		{
-
+			//Do some sort of crouch things here?
 		}
 		else
 		{
@@ -184,9 +172,7 @@ public class CharacterController : MonoBehaviour
 	{
 		if(currentShell != null)
 		{
-			currentShell.gameObject.transform.parent = null;
-			currentShell.gameObject.GetComponent<Rigidbody>().isKinematic = false;
-			currentShell.gameObject.GetComponent<Collider>().enabled = true;
+			currentShell.ExitShell(shellHolder);
 			currentShell = null;
 		}
 	}
