@@ -46,8 +46,6 @@ void CSMain (uint3 id : SV_DispatchThreadID)
 	position.x = -halfSize.x + id.x * segmentSize.x;
 	position.z = halfSize.y - id.y * segmentSize.y;
 	
-	float waveDot = dot(_WaveDirection.xy, position.xz) + _WavePosition;
-
 	for (uint i = 0; i < length; i++)
 	{
 		WaveDescription wave = _Waves[i];
@@ -64,6 +62,7 @@ void CSMain (uint3 id : SV_DispatchThreadID)
 		position.z += steepness * wave.Amplitude * wave.Direction.y * cos(wave.Frequency * directionDot + _Time.y * wave.Speed);
 	}
 
+	float waveDot = dot(_WaveDirection.xy, position.xz);
 	float waveSin = sin(waveDot * _WaveFrequency + (_WavePosition - 0.5) * pi);
 	position.y += ((1 - pow(1 - abs(waveSin), _WaveSteepness)) * sign(waveSin) + 1) * 0.5 * _WaveHeight;
 

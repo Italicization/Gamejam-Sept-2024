@@ -733,7 +733,7 @@ MonoBehaviour:
     StartFog: 5
     EndFog: 71.6
   fade: 0.05
-  heightOverWater: 45.392036
+  heightOverWater: 58.730564
 --- !u!114 &832575521
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1654,8 +1654,8 @@ MonoBehaviour:
   resolution:
     x: 750
     y: 800
-  waveSteepness: 8.5
-  wavePosition: 1
+  waveSteepness: 64.8
+  wavePosition: 0.6
   waveHeight: 14
   waveDirection:
     x: 0
@@ -1696,9 +1696,15 @@ MonoBehaviour:
     type: 3}
   material: {fileID: 2100000, guid: 8d093c2f90c75bc4da11b998dd095441, type: 2}
   waveDuration: 30
-  floodedDuration: 30
+  floodedDuration: 5
   dryDuration: 5
   offset: 274
+  OnNewWaveStart:
+    m_PersistentCalls:
+      m_Calls: []
+  OnWaveRecede:
+    m_PersistentCalls:
+      m_Calls: []
 --- !u!4 &1686896771
 Transform:
   m_ObjectHideFlags: 0
@@ -1850,13 +1856,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8adfbd4f035b04846af08121e49f504e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  prefabVariants: []
+  prefabVariants:
+  - {fileID: 2115395021843344528, guid: 597e45ced1f469d468ac5ad161f83d60, type: 3}
+  spawnCount: 50
   rect:
     serializedVersion: 2
     x: 0
     y: 0
-    width: 400
-    height: 100
+    width: 186
+    height: 195.1
 --- !u!4 &1843089334
 Transform:
   m_ObjectHideFlags: 0
@@ -1866,7 +1874,7 @@ Transform:
   m_GameObject: {fileID: 1843089332}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 3.15, z: -100}
+  m_LocalPosition: {x: 0, y: 0, z: -72.4}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []

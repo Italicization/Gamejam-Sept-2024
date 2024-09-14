@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using Unity.Mathematics;
 using UnityEngine;
+using UnityEngine.Events;
 using UnityEngine.Rendering;
 using static Unity.Mathematics.math;
 
@@ -48,6 +49,11 @@ public class WaterSurface : MonoBehaviour
 	private int2 lastResolution;
 	private Vector2 lastSize;
 	private WaveDescription[] computedWaves;
+
+	public UnityEvent OnNewWaveStart;
+	public UnityEvent OnWaveRecede;
+
+	public Vector3 WaveDirection => new Vector3(waveDirection.x, 0, waveDirection.y);
 	
 	[Serializable]
 	class WaveConstruction
@@ -120,6 +126,8 @@ public class WaterSurface : MonoBehaviour
 
 			yield return new WaitForSeconds(dryDuration);
 
+			OnNewWaveStart?.Invoke();
+			
 			float timer = 0;
 			while (timer < waveDuration)
 			{
@@ -130,6 +138,8 @@ public class WaterSurface : MonoBehaviour
 			}
 			
 			yield return new WaitForSeconds(floodedDuration);
+			
+			OnWaveRecede?.Invoke();
 			
 			timer = 0;
 			while (timer < waveDuration)
@@ -223,11 +233,18 @@ public class WaterSurface : MonoBehaviour
 		waveBuffer?.Dispose();
 	}
 
+	public Vector3 GetVectorToWaveFront(float3 position)
+	{
+		float3 offsetPosition = transform.position;
+		position.xz -= offsetPosition.xz;
+		float waveDot = dot(waveDirection, position.xz) + (wavePosition - 0.5f) * wavelength * 0.5f;
+		return new Vector3(waveDirection.x, 0, waveDirection.y) * -waveDot;
+	}
+
 	public float GetHeightAtPosition(float3 position)
 	{
 		float3 offsetPosition = transform.position;
 		position.xz -= offsetPosition.xz;
-		float waveDot = dot(waveDirection, position.xz) + wavePosition;
 		float time = Time.time;
 		float height = offsetPosition.y;
 
@@ -239,6 +256,7 @@ public class WaterSurface : MonoBehaviour
 			height += wave.Amplitude * sin(directionDot * wave.Frequency + time * wave.Speed);
 		}
 
+		float waveDot = dot(waveDirection, position.xz);
 		float waveSin = sin(waveDot * 2 * PI / wavelength + (wavePosition - 0.5f) * PI);
 		height += ((1 - pow(1 - abs(waveSin), waveSteepness)) * sign(waveSin) + 1) * 0.5f * waveHeight;
 		return height;
