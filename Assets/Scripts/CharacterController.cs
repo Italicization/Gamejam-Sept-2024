@@ -18,6 +18,7 @@ public class CharacterController : MonoBehaviour
 	[SerializeField] private Transform visualTransform;
 	[SerializeField] private CrabShell currentShell;
 	[SerializeField] private Transform shellHolder;
+	[SerializeField] private float jumpForce;
 
 	private InputAction Look;
     private InputAction Fire;
@@ -56,7 +57,7 @@ public class CharacterController : MonoBehaviour
 	}
 
 	// Update is called once per frame
-	void Update()
+	private void Update()
     {
         currentMovementInput = Move.ReadValue<Vector2>();
         currentLookInput = Look.ReadValue<Vector2>();
@@ -110,7 +111,7 @@ public class CharacterController : MonoBehaviour
 		flatCameraTransform.localEulerAngles = new(0, cameraTransform.localEulerAngles.y, cameraTransform.localEulerAngles.z);
 	}
 
-	void RotateTowardsMoveDirection(Vector3 direction)
+	private void RotateTowardsMoveDirection(Vector3 direction)
 	{
 		// Hmmmmmm seems to be having trouble with 180deg changes
 		Vector3 lerpedDirection = Vector3.LerpUnclamped(visualTransform.forward, direction.normalized, 0.2f);
@@ -124,8 +125,7 @@ public class CharacterController : MonoBehaviour
 		Debug.DrawLine(visualTransform.position, visualTransform.position + visualTransform.forward, Color.red,1);
 		foreach (RaycastHit hit in colliders)
 		{
-			CrabShell shell = hit.collider.gameObject.GetComponent<CrabShell>();
-			if (shell != null)
+			if (hit.collider.gameObject.TryGetComponent(out CrabShell shell))
 			{
 				Vector3 toHit = hit.collider.gameObject.transform.position - visualTransform.position;
 				float closeness = Vector3.Dot(visualTransform.forward, toHit);
@@ -136,20 +136,20 @@ public class CharacterController : MonoBehaviour
 		return closestCrabShell;
 	}
 
-	void EnterEmptyShell(CrabShell shell)
+	private void EnterEmptyShell(CrabShell shell)
 	{
 		currentShell = shell;
 		currentShell.EnterShell(shellHolder);
 	}
 
-	void OnPrimaryAttack(InputAction.CallbackContext context)
+	private void OnPrimaryAttack(InputAction.CallbackContext context)
     {
     }
 
 	/// <summary>
 	/// Try to enter an unoccupied shell. If already in a shell, hide within it
 	/// </summary>
-	void OnEnterShell(InputAction.CallbackContext context)
+	private void OnEnterShell(InputAction.CallbackContext context)
 	{
 		bool isAlreadyInShell = currentShell != null;
 
@@ -168,17 +168,27 @@ public class CharacterController : MonoBehaviour
 		}
 	}
 
-	void OnExitShell(InputAction.CallbackContext context)
+	private void ShellEjectJump()
+	{
+		float verticalComponent;
+		verticalComponent = Input.GetKey(KeyCode.Space) ? 1 : 0;
+		characterRigidBody.velocity = new(characterRigidBody.velocity.x, 0, characterRigidBody.velocity.z);
+		// Dependent on character's visual forward instead of input forward. Gross.
+		characterRigidBody.AddForce(jumpForce * (visualTransform.forward + Vector3.up * verticalComponent), ForceMode.Impulse);
+	}
+
+	private void OnExitShell(InputAction.CallbackContext context)
 	{
 		if(currentShell != null)
 		{
+			ShellEjectJump();
 			currentShell.ExitShell(shellHolder);
 			currentShell = null;
 		}
 	}
 
-    void OnJump(InputAction.CallbackContext context)
+    private void OnJump(InputAction.CallbackContext context)
     {
-
+		characterRigidBody.AddForce(Vector3.up * jumpForce, ForceMode.Impulse);
     }
 }

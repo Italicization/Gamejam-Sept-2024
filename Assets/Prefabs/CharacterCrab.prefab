@@ -910,6 +910,7 @@ MonoBehaviour:
   visualTransform: {fileID: 8552374481450227915}
   currentShell: {fileID: 0}
   shellHolder: {fileID: 6774388417856786388}
+  jumpForce: 9
   movementForce: 423.5
   lookSensitivity: 10
 --- !u!1 &9114123066166945282
