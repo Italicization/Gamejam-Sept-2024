@@ -6,61 +6,63 @@ using UnityEngine.InputSystem;
 /// </summary>
 public class CharacterController : MonoBehaviour
 {
-    private PlayerInput input;
-    private PlayerControls controls;
-    private InputAction Move;
-    private Vector2 currentMovementInput;
-    private Vector2 currentLookInput;
-    [SerializeField] private Vector3 cameraOffset = new(1,1,1);
-    private float cameraXRotation;
-	private Transform cameraTransform;
+	[SerializeField] private Vector3 cameraOffset = new(1, 1, 1);
 	[SerializeField] private Transform flatCameraTransform;
 	[SerializeField] private Transform visualTransform;
 	[SerializeField] private CrabShell currentShell;
 	[SerializeField] private Transform shellHolder;
 	[SerializeField] private float jumpForce;
+	[SerializeField, Tooltip("Horizontal force the character is moved at")] private float movementForce;
+	[SerializeField] private float lookSensitivity = 10;
+	[SerializeField] private float interactionRange = 1;
 
+	private Vector2 currentMovementInput;
+	private Vector2 currentLookInput;
+	private float cameraXRotation;
+	private Transform cameraTransform;
+	private Rigidbody characterRigidBody;
+
+	private PlayerInput input;
+	private PlayerControls controls;
+	private InputAction Move;
 	private InputAction Look;
-    private InputAction Fire;
+	private InputAction Fire;
 	private InputAction Enter;
-    private InputAction Exit;
-    private InputAction Jump;
-    private Rigidbody characterRigidBody;
-    [SerializeField, Tooltip("Horizontal force the character is moved at")] private float movementForce;
-    [SerializeField] private float lookSensitivity = 10;
-
+	private InputAction Exit;
+	private InputAction Jump;
+	
 	private void Awake()
 	{
-        controls = new();
-        controls.Enable();
-        Move = controls.Player.Move;
-        Look = controls.Player.Look;
+		controls = new();
+		controls.Enable();
+		Move = controls.Player.Move;
+		Look = controls.Player.Look;
 
 		Fire = controls.Player.Fire;
-        Fire.performed += OnPrimaryAttack;
+		Fire.performed += OnPrimaryAttack;
 
-        Enter = controls.Player.Enter;
-        Enter.performed += OnEnterShell;
-        Exit = controls.Player.Exit;
+		Enter = controls.Player.Enter;
+		Enter.performed += OnEnterShell;
+		Exit = controls.Player.Exit;
 		Exit.performed += OnExitShell;
 
-        Jump = controls.Player.Jump;
-        Jump.performed += OnJump;
+		Jump = controls.Player.Jump;
+		Jump.performed += OnJump;
 	}
 
 	private void Start()
-    {
-        input = GetComponent<PlayerInput>();
+	{
+		input = GetComponent<PlayerInput>();
 		cameraTransform = input.camera.transform;
 		characterRigidBody = GetComponent<Rigidbody>();
-        Cursor.lockState = CursorLockMode.Locked;
+		Cursor.lockState = CursorLockMode.Locked;
 	}
 
 	// Update is called once per frame
 	private void Update()
-    {
-        currentMovementInput = Move.ReadValue<Vector2>();
-        currentLookInput = Look.ReadValue<Vector2>();
+	{
+		currentMovementInput = Move.ReadValue<Vector2>();
+		currentLookInput = Look.ReadValue<Vector2>();
 		CharacterMove(currentMovementInput);
 		CameraLook(currentLookInput);
 	}
@@ -76,11 +78,9 @@ public class CharacterController : MonoBehaviour
 		moveDirection *= moveMultiplier;
 
 		//Make direction camera relative
-		//Vector3 lookRelative = Vector3.ProjectOnPlane(input.camera.transform.forward, Vector3.up);
 		Vector3 movement = new(moveDirection.x, 0, moveDirection.y);
 		movement = flatCameraTransform.right * movement.x + flatCameraTransform.forward * movement.z;
 		characterRigidBody.AddForce(movement, ForceMode.Force);
-		//characterRigidBody.AddForce(flatCameraTransform.forward * movement.z, ForceMode.Force);
 		RotateTowardsMoveDirection(movement);
 	}
 
@@ -121,14 +121,22 @@ public class CharacterController : MonoBehaviour
 	CrabShell FindClosestCrabShell()
 	{
 		CrabShell closestCrabShell = null;
+		Physics.OverlapBox(visualTransform.position, Vector3.one);
 		RaycastHit[] colliders = Physics.BoxCastAll(visualTransform.position + visualTransform.forward * 2, Vector3.one, visualTransform.forward);
-		Debug.DrawLine(visualTransform.position, visualTransform.position + visualTransform.forward, Color.red,1);
+		Debug.DrawLine(visualTransform.position, visualTransform.position + visualTransform.forward, Color.red, 1);
 		foreach (RaycastHit hit in colliders)
 		{
+			float closeness = interactionRange;
 			if (hit.collider.gameObject.TryGetComponent(out CrabShell shell))
 			{
+
 				Vector3 toHit = hit.collider.gameObject.transform.position - visualTransform.position;
-				float closeness = Vector3.Dot(visualTransform.forward, toHit);
+				float currentCloseness = Vector3.Dot(visualTransform.forward, toHit);
+				if(currentCloseness < closeness && 0 <= currentCloseness)
+				{
+					closestCrabShell = shell;
+				}
+				closeness = currentCloseness;
 				Debug.Log(hit.collider.gameObject.name);
 				closestCrabShell = shell;
 			}
@@ -143,8 +151,8 @@ public class CharacterController : MonoBehaviour
 	}
 
 	private void OnPrimaryAttack(InputAction.CallbackContext context)
-    {
-    }
+	{
+	}
 
 	/// <summary>
 	/// Try to enter an unoccupied shell. If already in a shell, hide within it
@@ -153,7 +161,7 @@ public class CharacterController : MonoBehaviour
 	{
 		bool isAlreadyInShell = currentShell != null;
 
-		if(isAlreadyInShell)
+		if (isAlreadyInShell)
 		{
 			//Do some sort of crouch things here?
 		}
@@ -179,7 +187,7 @@ public class CharacterController : MonoBehaviour
 
 	private void OnExitShell(InputAction.CallbackContext context)
 	{
-		if(currentShell != null)
+		if (currentShell != null)
 		{
 			ShellEjectJump();
 			currentShell.ExitShell(shellHolder);
@@ -187,8 +195,8 @@ public class CharacterController : MonoBehaviour
 		}
 	}
 
-    private void OnJump(InputAction.CallbackContext context)
-    {
+	private void OnJump(InputAction.CallbackContext context)
+	{
 		characterRigidBody.AddForce(Vector3.up * jumpForce, ForceMode.Impulse);
-    }
+	}
 }
