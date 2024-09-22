@@ -76,6 +76,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   boundsVolumeOccupies: 0.804
+  forceNeutralBuoyancy: 0
   floatingAngularDrag: 10
   floatingDrag: 5
   maxOffCenter: 0.115

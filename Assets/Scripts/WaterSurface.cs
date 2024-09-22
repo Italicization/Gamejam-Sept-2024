@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using Unity.Mathematics;
+using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.Rendering;
@@ -53,7 +54,16 @@ public class WaterSurface : MonoBehaviour
 	public UnityEvent OnNewWaveStart;
 	public UnityEvent OnWaveRecede;
 
-	public Vector3 WaveDirection => new Vector3(waveDirection.x, 0, waveDirection.y);
+	public Vector3 WaveDirection => (State == WaveState.Outgoing ? -1 : 1) * new Vector3(waveDirection.x, 0, waveDirection.y);
+	public WaveState State { get; private set; }
+
+	public enum WaveState
+	{
+		Dry,
+		Incoming,
+		Flooded,
+		Outgoing,
+	}
 	
 	[Serializable]
 	class WaveConstruction
@@ -122,10 +132,12 @@ public class WaterSurface : MonoBehaviour
 		while (true)
 		{
 			wavePosition = 0;
+			State = WaveState.Dry;
 			SetComputeProperties();
 
 			yield return new WaitForSeconds(dryDuration);
 
+			State = WaveState.Incoming;
 			OnNewWaveStart?.Invoke();
 			
 			float timer = 0;
@@ -136,9 +148,11 @@ public class WaterSurface : MonoBehaviour
 				wavePosition = timer / waveDuration;
 				SetComputeProperties();
 			}
-			
+
+			State = WaveState.Flooded;
 			yield return new WaitForSeconds(floodedDuration);
-			
+
+			State = WaveState.Outgoing;
 			OnWaveRecede?.Invoke();
 			
 			timer = 0;

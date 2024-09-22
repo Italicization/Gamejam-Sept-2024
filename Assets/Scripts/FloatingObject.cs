@@ -11,6 +11,8 @@ public class FloatingObject : MonoBehaviour
 	
 	[Range(0, 1)]
 	[SerializeField] private float boundsVolumeOccupies = 0.5f;
+	[Tooltip("If true object will neither fall nor rise when fully submerged in water")]
+	[SerializeField] bool forceNeutralBuoyancy = false;
 	[SerializeField] private float floatingAngularDrag = 10;
 	[SerializeField] private float floatingDrag = 5;
 	[Range(0, 1)]
@@ -21,20 +23,37 @@ public class FloatingObject : MonoBehaviour
 	private float initialDrag;
 	private float initialAngularDrag;
 	private float volume;
+	private float currentDisplacement;
 
 	private void Awake()
 	{
 		renderer = GetComponentInChildren<Renderer>();
 		MeshFilter filter = GetComponentInChildren<MeshFilter>();
-		
-		Bounds meshBounds = filter.sharedMesh.bounds;
-		Vector3 scale = transform.localScale;
-		volume = meshBounds.size.x * meshBounds.size.y * meshBounds.size.z * scale.x * scale.y * scale.z;
+
+		volume = GetObjectVolume();
 		
 		TryGetComponent(out rBody);
 
 		initialDrag = rBody.drag;
 		initialAngularDrag = rBody.angularDrag;
+	}
+
+	private float GetObjectVolume()
+	{
+		Bounds bounds = GetBounds();
+		Vector3 scale = transform.localScale;
+		return bounds.size.x * bounds.size.y * bounds.size.z * scale.x * scale.y * scale.z;
+
+		Bounds GetBounds()
+		{
+			MeshFilter filter = GetComponentInChildren<MeshFilter>();
+			if (filter != null)
+				return filter.sharedMesh.bounds;
+			SkinnedMeshRenderer skinnedMeshRenderer = GetComponentInChildren<SkinnedMeshRenderer>();
+			if (skinnedMeshRenderer != null)
+				return skinnedMeshRenderer.sharedMesh.bounds;
+			return new Bounds(Vector3.zero, new Vector3(0.1f, 0.1f, 0.1f));
+		}
 	}
 
 	private void FixedUpdate()
@@ -51,7 +70,7 @@ public class FloatingObject : MonoBehaviour
 		float displacedBottomLeft = math.saturate((waterHeightBottomLeft - bounds.center.y) / bounds.size.y);
 
 		float totalDisplacement = displacedBottomRight + displacedBottomLeft + displacedFrontRight + displacedFrontLeft;
-		float averageDisplacement = totalDisplacement / 4.0f;
+		currentDisplacement = totalDisplacement / 4.0f;
 		float averageWaterLevel = (waterHeightFrontRight + waterHeightFrontLeft + waterHeightBottomRight + waterHeightBottomLeft) / 4.0f;
 		float maxDisplacement = math.max(math.max(displacedBottomRight, displacedBottomLeft), math.max(displacedFrontRight, displacedFrontLeft));
 		float2 forceCenter = new float2(displacedBottomRight + displacedFrontRight, displacedFrontLeft + displacedFrontRight) / totalDisplacement;
@@ -59,14 +78,18 @@ public class FloatingObject : MonoBehaviour
 		forceCenter = math.select(forceCenter, 0, math.isnan(forceCenter));
 		forceCenter = math.lerp(0.5f, forceCenter, maxOffCenter);
 		
-		float force = WATER_DENSITY * volume * boundsVolumeOccupies * averageDisplacement * -Physics.gravity.y;
+		float force;
+		if (forceNeutralBuoyancy)
+			force = -Physics.gravity.y * rBody.mass * currentDisplacement;
+        else
+			force = WATER_DENSITY * volume * boundsVolumeOccupies * currentDisplacement * -Physics.gravity.y;
 		Vector3 position = bounds.min + new Vector3(forceCenter.x * bounds.size.x, 0.5f * bounds.size.y, forceCenter.y * bounds.size.z);
 		
 		Debug.DrawRay(position, new Vector3(0, force, 0), Color.red);
 		Debug.DrawLine(new Vector3(position.x, averageWaterLevel, position.z), new Vector3(position.x, bounds.min.y, position.z), Color.green);
 		
-		rBody.AddForceAtPosition(new Vector3(0, force * Time.fixedDeltaTime, 0), position);
-		rBody.angularDrag = math.lerp(initialAngularDrag, floatingAngularDrag, averageDisplacement);
+		rBody.AddForceAtPosition(new Vector3(0, force, 0), position);
+		rBody.angularDrag = math.lerp(initialAngularDrag, floatingAngularDrag, currentDisplacement);
 		rBody.drag = math.lerp(initialDrag, floatingDrag, maxDisplacement);
 	}
 }
