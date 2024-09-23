@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -14,6 +15,8 @@ public class CharacterController : MonoBehaviour
 	[SerializeField, Tooltip("Horizontal force the character is moved at")] private float movementForce;
 	[SerializeField, Tooltip("Mouse sensitivity")] private float lookSensitivity = 10;
 	[SerializeField, Tooltip("The range of how far the character can interact with objects, such as attacking and eating")] private float interactionRange = 1;
+	[SerializeField, Tooltip("Amount of seconds the jump input will remain active for while in the air")] float jumpBufferDuration = 0.4f;
+
 
 	[Header("Required fields")]
 	[SerializeField, Tooltip("Flattened transform that follows the camera")] private Transform flatCameraTransform;
@@ -215,10 +218,38 @@ public class CharacterController : MonoBehaviour
 		}
 	}
 
+	Coroutine jumpCoroutine;
 	private void OnJump(InputAction.CallbackContext context)
 	{
+		if (!TryJump())
+        {
+			if (jumpCoroutine != null)
+				StopCoroutine(jumpCoroutine);
+
+			jumpCoroutine = StartCoroutine(JumpBuffer());
+		}
+	}
+
+	private bool TryJump()
+    {
 		isGrounded = IsGrounded;
-		if (isGrounded)
-			characterRigidBody.AddForce(Vector3.up * jumpVelocity, ForceMode.VelocityChange);
+        if (isGrounded)
+        {
+			Vector3 startingVelocity = characterRigidBody.velocity;
+			characterRigidBody.velocity = new(startingVelocity.x, jumpVelocity, startingVelocity.z);
+		}
+
+		return isGrounded;
+	}
+
+	private IEnumerator JumpBuffer()
+	{
+		for (float i = 0; i < jumpBufferDuration; i += Time.deltaTime)
+		{
+			if (!TryJump())
+				yield return null;
+			else
+				break;
+		}
 	}
 }
