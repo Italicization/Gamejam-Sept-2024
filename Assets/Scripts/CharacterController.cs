@@ -6,21 +6,27 @@ using UnityEngine.InputSystem;
 /// </summary>
 public class CharacterController : MonoBehaviour
 {
-	[SerializeField] private Vector3 cameraOffset = new(1, 1, 1);
-	[SerializeField] private Transform flatCameraTransform;
-	[SerializeField] private Transform visualTransform;
 	[SerializeField] private CrabShell currentShell;
-	[SerializeField] private Transform shellHolder;
-	[SerializeField] private float jumpForce;
+	
+	[Header("Character attributes")]
+	[SerializeField, Tooltip("Where is the camera positioned relative to the character's position?")] private Vector3 cameraOffset = new(1, 1, 1);
+	[SerializeField, Tooltip("How much vertical velocity will the basic jump add?")] private float jumpVelocity;
 	[SerializeField, Tooltip("Horizontal force the character is moved at")] private float movementForce;
-	[SerializeField] private float lookSensitivity = 10;
-	[SerializeField] private float interactionRange = 1;
+	[SerializeField, Tooltip("Mouse sensitivity")] private float lookSensitivity = 10;
+	[SerializeField, Tooltip("The range of how far the character can interact with objects, such as attacking and eating")] private float interactionRange = 1;
+
+	[Header("Required fields")]
+	[SerializeField, Tooltip("Flattened transform that follows the camera")] private Transform flatCameraTransform;
+	[SerializeField, Tooltip("Transform of the character model")] private Transform visualTransform;
+	[SerializeField, Tooltip("Parent transform where shells will be placed")] private Transform shellHolder;
 
 	private Vector2 currentMovementInput;
 	private Vector2 currentLookInput;
 	private float cameraXRotation;
 	private Transform cameraTransform;
 	private Rigidbody characterRigidBody;
+	private bool isGrounded;
+	private Collider characterCollider;
 
 	private PlayerInput input;
 	private PlayerControls controls;
@@ -31,6 +37,18 @@ public class CharacterController : MonoBehaviour
 	private InputAction Exit;
 	private InputAction Jump;
 	
+	private bool IsGrounded { 
+		get 
+		{
+			Collider[] hitColliders = Physics.OverlapSphere(characterCollider.bounds.min, characterCollider.bounds.extents.x/*, layerMask*/);
+			foreach (Collider collider in hitColliders)
+				if (collider != characterCollider)
+					return true;
+
+			return false;
+		}
+	}
+
 	private void Awake()
 	{
 		controls = new();
@@ -55,6 +73,7 @@ public class CharacterController : MonoBehaviour
 		input = GetComponent<PlayerInput>();
 		cameraTransform = input.camera.transform;
 		characterRigidBody = GetComponent<Rigidbody>();
+		characterCollider = GetComponent<Collider>();
 		Cursor.lockState = CursorLockMode.Locked;
 	}
 
@@ -63,6 +82,7 @@ public class CharacterController : MonoBehaviour
 	{
 		currentMovementInput = Move.ReadValue<Vector2>();
 		currentLookInput = Look.ReadValue<Vector2>();
+		
 		CharacterMove(currentMovementInput);
 		CameraLook(currentLookInput);
 	}
@@ -182,7 +202,7 @@ public class CharacterController : MonoBehaviour
 		verticalComponent = Input.GetKey(KeyCode.Space) ? 1 : 0;
 		characterRigidBody.velocity = new(characterRigidBody.velocity.x, 0, characterRigidBody.velocity.z);
 		// Dependent on character's visual forward instead of input forward. Gross.
-		characterRigidBody.AddForce(jumpForce * (visualTransform.forward + Vector3.up * verticalComponent), ForceMode.Impulse);
+		characterRigidBody.AddForce(jumpVelocity * (visualTransform.forward + Vector3.up * verticalComponent), ForceMode.Impulse);
 	}
 
 	private void OnExitShell(InputAction.CallbackContext context)
@@ -197,6 +217,8 @@ public class CharacterController : MonoBehaviour
 
 	private void OnJump(InputAction.CallbackContext context)
 	{
-		characterRigidBody.AddForce(Vector3.up * jumpForce, ForceMode.Impulse);
+		isGrounded = IsGrounded;
+		if (isGrounded)
+			characterRigidBody.AddForce(Vector3.up * jumpVelocity, ForceMode.VelocityChange);
 	}
 }
