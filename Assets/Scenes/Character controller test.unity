@@ -1126,9 +1126,34 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 676228900334086101, guid: fa791b8fd2ee56940a37dca726c12722,
         type: 3}
+      propertyPath: maxDrag
+      value: 30
+      objectReference: {fileID: 0}
+    - target: {fileID: 676228900334086101, guid: fa791b8fd2ee56940a37dca726c12722,
+        type: 3}
+      propertyPath: shellJumpVelocity
+      value: 12
+      objectReference: {fileID: 0}
+    - target: {fileID: 676228900334086101, guid: fa791b8fd2ee56940a37dca726c12722,
+        type: 3}
       propertyPath: flatCameraTransform
       value: 
       objectReference: {fileID: 1278501226}
+    - target: {fileID: 676228900334086101, guid: fa791b8fd2ee56940a37dca726c12722,
+        type: 3}
+      propertyPath: shellJumpChargeTime
+      value: 1.75
+      objectReference: {fileID: 0}
+    - target: {fileID: 676228900334086101, guid: fa791b8fd2ee56940a37dca726c12722,
+        type: 3}
+      propertyPath: maxShellJumpVelocity
+      value: 20
+      objectReference: {fileID: 0}
+    - target: {fileID: 676228900334086101, guid: fa791b8fd2ee56940a37dca726c12722,
+        type: 3}
+      propertyPath: minShellJumpVelocity
+      value: 12
+      objectReference: {fileID: 0}
     - target: {fileID: 6339182275058208258, guid: fa791b8fd2ee56940a37dca726c12722,
         type: 3}
       propertyPath: m_Name
